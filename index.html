@@ -51,6 +51,25 @@
         }
 
     </style>
+    <!-- Meta Pixel Code -->
+<script>
+  !function(f,b,e,v,n,t,s)
+  {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+  n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+  if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+  n.queue=[];t=b.createElement(e);t.async=!0;
+  t.src=v;s=b.getElementsByTagName(e)[0];
+  s.parentNode.insertBefore(t,s)}(window, document,'script',
+  'https://connect.facebook.net/en_US/fbevents.js');
+  fbq('init', '1531946768367827');
+  fbq('track', 'PageView');
+</script>
+<noscript>
+  <img height="1" width="1" style="display:none"
+  src="https://www.facebook.com/tr?id=1531946768367827&ev=PageView&noscript=1"
+/>
+</noscript>
+<!-- End Meta Pixel Code -->
 </head>
 <body class="bg-brand-dark text-brand-cream font-sans antialiased overflow-x-hidden">
 
@@ -556,6 +575,28 @@
 
         window.addEventListener('DOMContentLoaded', () => {
             lucide.createIcons();
+            // 📊 Trackear cuando alguien ve detalles de un auto
+const originalOpenModal = openModal;
+window.openModal = function(id) {
+    originalOpenModal(id);
+    const car = CARS.find(c => c.id === id);
+    if (car && typeof fbq !== 'undefined') {
+        fbq('track', 'ViewContent', {
+            content_name: `${car.brand} ${car.model}`,
+            content_category: car.type,
+            content_ids: [car.id],
+            value: car.price,
+            currency: 'USD'
+        });
+    }
+};
+
+// 📊 Trackear cuando alguien usa los filtros del catálogo
+document.getElementById('filter-search')?.addEventListener('input', (e) => {
+    if (e.target.value.length > 2 && typeof fbq !== 'undefined') {
+        fbq('track', 'Search', { search_string: e.target.value, currency: 'USD' });
+    }
+});
             renderCatalog(CARS);
             updateSimulator();
             initHeaderScroll();
@@ -734,37 +775,85 @@
         }
 
         function submitExpressQuery(event, vehicleName, price) {
-            event.preventDefault();
-            closeModal();
-            showToast("Consulta enviada");
-        }
+    event.preventDefault();
+    
+    // 📊 EVENTO META PIXEL: Lead de consulta específica de auto
+    if (typeof fbq !== 'undefined') {
+        fbq('track', 'Lead', {
+            content_name: vehicleName,
+            content_category: 'Consulta Auto',
+            value: price,
+            currency: 'USD'
+        });
+        console.log('📊 Meta: Lead Consulta Auto enviado');
+    }
+    
+    closeModal();
+    showToast("✅ Consulta enviada");
+    event.target.reset();
+}
 
         function submitFinancing(event) {
-            event.preventDefault();
-            closeFinancingModal();
-            showToast("Pre-aprobación solicitada");
-        }
+    event.preventDefault();
+    
+    // 📊 EVENTO META PIXEL: Lead de Financiación
+    if (typeof fbq !== 'undefined') {
+        fbq('track', 'Lead', {
+            content_name: 'Pre-Aprobación de Crédito',
+            content_category: 'Financiacion',
+            valor_auto: document.getElementById('fin-modal-val').innerText,
+            anticipo: document.getElementById('fin-modal-down').innerText,
+            plazo: document.getElementById('fin-modal-term').innerText,
+            value: 100.00,
+            currency: 'USD'
+        });
+        console.log('📊 Meta: Lead Financiación enviado');
+    }
+    
+    closeFinancingModal();
+    showToast("✅ Pre-aprobación solicitada");
+    event.target.reset();
+}
 
         function submitTasacion(event) {
-            event.preventDefault();
-            showToast("Datos de tasación enviados");
-            event.target.reset();
-        }
+    event.preventDefault();
+    
+    // 📊 EVENTO META PIXEL: Lead de Tasación
+    if (typeof fbq !== 'undefined') {
+        const formData = new FormData(event.target);
+        fbq('track', 'Lead', {
+            content_name: 'Tasación de Auto',
+            content_category: 'Tasacion',
+            auto: `${formData.get('brand')} ${formData.get('model')}`,
+            year: formData.get('year'),
+            value: 50.00,
+            currency: 'USD'
+        });
+        console.log('📊 Meta: Lead Tasación enviado');
+    }
+    
+    showToast("✅ Datos de tasación enviados");
+    event.target.reset();
+}
 
         function submitContacto(event) {
-            event.preventDefault();
-            showToast("Mensaje enviado");
-            event.target.reset();
-        }
-
-        function showToast(message) {
-            const container = document.getElementById('toast-container');
-            const toast = document.createElement('div');
-            toast.className = "bg-zinc-900 border border-white/10 p-4 rounded-xl text-xs text-brand-cream transition-all duration-300 shadow-2xl";
-            toast.innerText = message;
-            container.appendChild(toast);
-            setTimeout(() => toast.remove(), 3000);
-        }
+    event.preventDefault();
+    
+    // 📊 EVENTO META PIXEL: Lead de Contacto
+    if (typeof fbq !== 'undefined') {
+        const formData = new FormData(event.target);
+        fbq('track', 'Lead', {
+            content_name: formData.get('subject') || 'Consulta General',
+            content_category: 'Contacto',
+            value: 30.00,
+            currency: 'USD'
+        });
+        console.log('📊 Meta: Lead Contacto enviado');
+    }
+    
+    showToast("✅ Mensaje enviado");
+    event.target.reset();
+}
     </script>
 </body>
 </html>
