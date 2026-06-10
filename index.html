@@ -49,17 +49,7 @@
             box-shadow: 0 0 25px -5px rgba(255, 42, 59, 0.2);
             border-color: rgba(255, 42, 59, 0.15);
         }
-        /* Ocultar barra de scroll del CRM log */
-        .crm-log::-webkit-scrollbar {
-            width: 4px;
-        }
-        .crm-log::-webkit-scrollbar-track {
-            background: #101216;
-        }
-        .crm-log::-webkit-scrollbar-thumb {
-            background: #e63946;
-            border-radius: 2px;
-        }
+
     </style>
 </head>
 <body class="bg-brand-dark text-brand-cream font-sans antialiased overflow-x-hidden">
@@ -100,13 +90,6 @@
             <a href="#tasacion" onclick="toggleMobileMenu()" class="block py-2 text-base font-medium hover:text-brand-gold">Tasar Mi Auto</a>
             <a href="#contacto" onclick="toggleMobileMenu()" class="block py-2 text-base font-medium hover:text-brand-gold">Contacto</a>
             <div class="pt-4 border-t border-white/5 flex flex-col gap-3">
-                <button onclick="toggleCrmPanel(); toggleMobileMenu();" class="flex items-center justify-center gap-2 py-2.5 text-sm font-semibold bg-zinc-900 text-zinc-300 rounded-lg">
-                    <span class="relative flex h-2 w-2">
-                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                        <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                    </span>
-                    Ver CRM Integrado
-                </button>
                 <a href="#contacto" onclick="toggleMobileMenu()" class="w-full text-center py-3 text-sm font-bold tracking-wider uppercase bg-brand-red text-white rounded-lg">
                     Consultar Ahora
                 </a>
@@ -518,28 +501,6 @@
         </div>
     </div>
 
-    <!-- PANEL INTEGRAL SIMULACIÓN CRM -->
-    <div id="crm-panel" class="fixed bottom-0 right-0 md:right-5 w-full md:w-96 bg-zinc-950 border-t md:border-x border-emerald-500/30 md:rounded-t-3xl shadow-[0_-10px_40px_-10px_rgba(16,185,129,0.2)] z-50 transform translate-y-full transition-transform duration-500 ease-out">
-        <div onclick="toggleCrmPanel()" class="flex items-center justify-between px-6 py-4 bg-zinc-900 md:rounded-t-3xl border-b border-white/5 cursor-pointer">
-            <div class="flex items-center gap-2">
-                <span class="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                <span class="text-xs font-bold uppercase tracking-wider text-emerald-400">CRM Sync Dashboard</span>
-            </div>
-            <div class="flex items-center gap-2 text-xs text-brand-muted hover:text-white">
-                <span id="crm-badge" class="bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full text-[10px]">0 Leads</span>
-                <i data-lucide="chevron-down" id="crm-chevron" class="h-4 w-4 transition-transform"></i>
-            </div>
-        </div>
-        <div class="p-6">
-            <p class="text-[11px] text-zinc-400 mb-4">Payloads JSON enviados vía API POST Webhook en tiempo real:</p>
-            <div id="crm-logs-list" class="crm-log bg-black/50 p-4 rounded-xl border border-white/5 h-64 overflow-y-auto space-y-3 font-mono text-xs">
-                <div class="text-zinc-500 italic text-center py-10">Esperando envíos de leads...</div>
-            </div>
-            <div class="mt-4 flex gap-2">
-                <button onclick="clearCrmLogs()" class="text-[10px] text-red-400 hover:underline">Limpiar Consola</button>
-            </div>
-        </div>
-    </div>
 
     <!-- LOGIC (VANILLA JS) -->
     <script>
@@ -592,13 +553,11 @@
         ];
 
         let selectedTerm = 24;
-        let crmLeads = [];
 
         window.addEventListener('DOMContentLoaded', () => {
             lucide.createIcons();
             renderCatalog(CARS);
             updateSimulator();
-            loadCrmHistory();
             initHeaderScroll();
         });
 
@@ -774,113 +733,26 @@
             document.getElementById('financing-modal').classList.add('hidden');
         }
 
-        function toggleCrmPanel() {
-            const panel = document.getElementById('crm-panel');
-            panel.classList.toggle('translate-y-full');
-        }
-
-        function loadCrmHistory() {
-            const stored = localStorage.getItem('guzzi_crm_leads');
-            if (stored) crmLeads = JSON.parse(stored);
-            updateCrmDashboard();
-        }
-
-        function updateCrmDashboard() {
-            const badge = document.getElementById('crm-badge');
-            const logsList = document.getElementById('crm-logs-list');
-            badge.innerText = `${crmLeads.length} Lead${crmLeads.length !== 1 ? 's' : ''}`;
-
-            if (crmLeads.length === 0) {
-                logsList.innerHTML = `<div class="text-zinc-500 italic text-center py-10">Esperando envíos de leads...</div>`;
-                return;
-            }
-
-            logsList.innerHTML = crmLeads.map(lead => `
-                <div class="border-b border-zinc-800 pb-2 mb-2 last:border-0 font-mono text-[11px]">
-                    <div class="flex justify-between text-emerald-400 font-bold"><span>[POST] Webhook</span><span>${lead.timestamp}</span></div>
-                    <pre class="text-zinc-300 bg-zinc-900 p-2 rounded overflow-x-auto mt-1">${JSON.stringify(lead.payload, null, 2)}</pre>
-                </div>
-            `).join('');
-            logsList.scrollTop = logsList.scrollHeight;
-        }
-
-        function pushLeadToCrm(source, data) {
-            const date = new Date();
-            const timestamp = `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}:${date.getSeconds().toString().padStart(2, '0')}`;
-            
-            const newLead = {
-                timestamp,
-                payload: {
-                    lead_id: `guzzi_${Math.floor(Math.random()*900000+100000)}`,
-                    channel: source,
-                    customer: data.client_name || data.name,
-                    phone: data.client_phone || data.phone,
-                    details: data.message || data.subject,
-                    meta: data.appraisal || data.finance_simulation || null
-                }
-            };
-
-            crmLeads.push(newLead);
-            localStorage.setItem('guzzi_crm_leads', JSON.stringify(crmLeads));
-            updateCrmDashboard();
-        }
-
-        function clearCrmLogs() {
-            crmLeads = [];
-            localStorage.removeItem('guzzi_crm_leads');
-            updateCrmDashboard();
-        }
-
         function submitExpressQuery(event, vehicleName, price) {
             event.preventDefault();
-            const formData = new FormData(event.target);
-            pushLeadToCrm("Consulta Rápida Catálogo", {
-                client_name: formData.get('exp_name'),
-                client_phone: formData.get('exp_phone'),
-                message: `Interés en ${vehicleName} (USD ${price})`
-            });
             closeModal();
             showToast("Consulta enviada");
         }
 
         function submitFinancing(event) {
             event.preventDefault();
-            const formData = new FormData(event.target);
-            pushLeadToCrm("Simulador Créditos", {
-                client_name: formData.get('fin_name'),
-                client_phone: formData.get('fin_phone'),
-                message: `DNI: ${formData.get('fin_dni')}`,
-                finance_simulation: { info: document.getElementById('sim-monthly-payment').innerText }
-            });
             closeFinancingModal();
             showToast("Pre-aprobación solicitada");
         }
 
         function submitTasacion(event) {
             event.preventDefault();
-            const formData = new FormData(event.target);
-            pushLeadToCrm("Formulario de Tasación", {
-                client_name: formData.get('client_name'),
-                client_phone: formData.get('client_phone'),
-                appraisal: {
-                    car: `${formData.get('brand')} ${formData.get('model')} ${formData.get('year')}`,
-                    km: formData.get('kilometers'),
-                    state: formData.get('condition')
-                }
-            });
             showToast("Datos de tasación enviados");
             event.target.reset();
         }
 
         function submitContacto(event) {
             event.preventDefault();
-            const formData = new FormData(event.target);
-            pushLeadToCrm("Contacto General", {
-                name: formData.get('name'),
-                phone: formData.get('email'),
-                message: formData.get('message'),
-                subject: formData.get('subject')
-            });
             showToast("Mensaje enviado");
             event.target.reset();
         }
